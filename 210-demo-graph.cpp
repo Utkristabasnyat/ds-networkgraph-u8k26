@@ -2,7 +2,7 @@
 /*
     COMSC-210 Data Structures
     Lab 34: Network Graph I
-    Step 4: Dijkstra's Shortest Path Algorithm
+    Step 5: Minimum Spanning Tree
 */
 
 #include <iostream>
@@ -12,6 +12,7 @@
 #include <string>
 #include <limits>
 #include <functional>
+#include <algorithm>
 using namespace std;
 
 const int SIZE = 13;
@@ -22,11 +23,21 @@ struct Edge {
 
 typedef pair<int, int> Pair;
 
+// Find the root of a vertex for Kruskal's algorithm
+int findRoot(int vertex, vector<int> &parent) {
+    if (parent[vertex] != vertex) {
+        parent[vertex] = findRoot(parent[vertex], parent);
+    }
+
+    return parent[vertex];
+}
+
 class Graph {
 public:
     vector<vector<Pair>> adjList;
     vector<int> vertices;
     vector<string> deviceNames;
+    vector<Edge> connections;
 
     // Graph constructor
     Graph(vector<Edge> const &edges,
@@ -36,6 +47,7 @@ public:
         adjList.resize(SIZE);
         vertices = activeVertices;
         deviceNames = names;
+        connections = edges;
 
         // Create undirected network connections
         for (const Edge &edge : edges) {
@@ -67,7 +79,7 @@ public:
         }
     }
 
-    // Depth-First Search for network inspection
+    // DFS: Inspect connected network devices
     void DFS(int start) {
         vector<bool> visited(SIZE, false);
         stack<int> nodes;
@@ -104,7 +116,7 @@ public:
         }
     }
 
-    // Breadth-First Search for network discovery
+    // BFS: Discover devices by connection hops
     void BFS(int start) {
         vector<bool> visited(SIZE, false);
         queue<int> nodes;
@@ -149,11 +161,9 @@ public:
     void shortestPaths(int start) {
         const int INF = numeric_limits<int>::max();
 
-        // Distance to every device starts at infinity
         vector<int> distance(SIZE, INF);
         distance[start] = 0;
 
-        // Priority queue stores (distance, vertex)
         priority_queue<Pair, vector<Pair>, greater<Pair>> pq;
         pq.push(make_pair(0, start));
 
@@ -162,28 +172,23 @@ public:
             int current = pq.top().second;
             pq.pop();
 
-            // Ignore outdated queue entries
             if (currentDistance > distance[current]) {
                 continue;
             }
 
-            // Check all neighboring devices
             for (Pair neighbor : adjList[current]) {
                 int next = neighbor.first;
                 int weight = neighbor.second;
 
                 int newDistance = currentDistance + weight;
 
-                // Update when a shorter path is found
                 if (newDistance < distance[next]) {
                     distance[next] = newDistance;
-
                     pq.push(make_pair(newDistance, next));
                 }
             }
         }
 
-        // Display shortest latency from the source
         cout << "\nShortest Network Paths from Device "
              << start << " (" << deviceNames[start]
              << "):\n";
@@ -201,16 +206,86 @@ public:
             }
         }
     }
+
+    // Kruskal's Minimum Spanning Tree algorithm
+    void minimumSpanningTree() {
+        // Sort connections by increasing weight
+        vector<Edge> sortedEdges = connections;
+
+        sort(sortedEdges.begin(), sortedEdges.end(),
+             [](const Edge &a, const Edge &b) {
+                 if (a.weight != b.weight) {
+                     return a.weight < b.weight;
+                 }
+                 if (a.src != b.src) {
+                     return a.src < b.src;
+                 }
+                 return a.dest < b.dest;
+             });
+
+        // Initially, each active vertex is its own group
+        vector<int> parent(SIZE);
+
+        for (int vertex : vertices) {
+            parent[vertex] = vertex;
+        }
+
+        int totalWeight = 0;
+        int edgeCount = 0;
+
+        cout << "\nData Center Minimum Spanning Tree:\n";
+        cout << "================================\n";
+
+        // Select edges without creating cycles
+        for (const Edge &edge : sortedEdges) {
+            int rootSrc = findRoot(edge.src, parent);
+            int rootDest = findRoot(edge.dest, parent);
+
+            if (rootSrc != rootDest) {
+                // Connect the two groups
+                parent[rootSrc] = rootDest;
+
+                cout << "Device " << edge.src
+                     << " (" << deviceNames[edge.src]
+                     << ") <-> Device " << edge.dest
+                     << " (" << deviceNames[edge.dest]
+                     << ") - Weight: "
+                     << edge.weight << " ms\n";
+
+                totalWeight += edge.weight;
+                edgeCount++;
+
+                // A spanning tree needs V - 1 edges
+                if (edgeCount ==
+                    static_cast<int>(vertices.size()) - 1) {
+                    break;
+                }
+            }
+        }
+
+        cout << "================================\n";
+
+        if (edgeCount ==
+            static_cast<int>(vertices.size()) - 1) {
+            cout << "Total MST weight: "
+                 << totalWeight << "\n";
+            cout << "Total MST edges: "
+                 << edgeCount << "\n";
+        } else {
+            cout << "The network is disconnected. "
+                 << "A complete MST cannot be formed.\n";
+        }
+    }
 };
 
 int main() {
-    // Step 2 graph: 2 original vertices removed,
-    // and 6 new vertices added
+    // Step 2: Two original vertices removed,
+    // six new vertices added
     vector<int> vertices = {
         0, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12
     };
 
-    // Same 16 network connections as Steps 2 and 3
+    // Same 16 connections from previous steps
     vector<Edge> edges = {
         {0,1,9},
         {0,2,11},
@@ -230,7 +305,6 @@ int main() {
         {7,12,13}
     };
 
-    // Device names indexed by vertex ID
     vector<string> deviceNames(SIZE);
 
     deviceNames[0] = "Main Router";
@@ -245,16 +319,16 @@ int main() {
     deviceNames[11] = "Storage Server";
     deviceNames[12] = "Backup Server";
 
-    // Create network graph
     Graph network(edges, vertices, deviceNames);
 
-    // Existing Step 3 functionality
+    // Previous functionality
     network.printGraph();
     network.DFS(0);
     network.BFS(0);
-
-    // New Step 4 functionality
     network.shortestPaths(0);
+
+    // New Step 5 functionality
+    network.minimumSpanningTree();
 
     return 0;
 }
