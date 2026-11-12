@@ -2,7 +2,7 @@
 /*
     COMSC-210 Data Structures
     Lab 34: Network Graph I
-    Step 3: Data Center Network Monitoring
+    Step 4: Dijkstra's Shortest Path Algorithm
 */
 
 #include <iostream>
@@ -10,6 +10,8 @@
 #include <stack>
 #include <queue>
 #include <string>
+#include <limits>
+#include <functional>
 using namespace std;
 
 const int SIZE = 13;
@@ -65,7 +67,7 @@ public:
         }
     }
 
-    // DFS: Inspect connected devices deeply
+    // Depth-First Search for network inspection
     void DFS(int start) {
         vector<bool> visited(SIZE, false);
         stack<int> nodes;
@@ -102,7 +104,7 @@ public:
         }
     }
 
-    // BFS: Discover devices layer by layer
+    // Breadth-First Search for network discovery
     void BFS(int start) {
         vector<bool> visited(SIZE, false);
         queue<int> nodes;
@@ -142,15 +144,73 @@ public:
             }
         }
     }
+
+    // Dijkstra's shortest-path algorithm
+    void shortestPaths(int start) {
+        const int INF = numeric_limits<int>::max();
+
+        // Distance to every device starts at infinity
+        vector<int> distance(SIZE, INF);
+        distance[start] = 0;
+
+        // Priority queue stores (distance, vertex)
+        priority_queue<Pair, vector<Pair>, greater<Pair>> pq;
+        pq.push(make_pair(0, start));
+
+        while (!pq.empty()) {
+            int currentDistance = pq.top().first;
+            int current = pq.top().second;
+            pq.pop();
+
+            // Ignore outdated queue entries
+            if (currentDistance > distance[current]) {
+                continue;
+            }
+
+            // Check all neighboring devices
+            for (Pair neighbor : adjList[current]) {
+                int next = neighbor.first;
+                int weight = neighbor.second;
+
+                int newDistance = currentDistance + weight;
+
+                // Update when a shorter path is found
+                if (newDistance < distance[next]) {
+                    distance[next] = newDistance;
+
+                    pq.push(make_pair(newDistance, next));
+                }
+            }
+        }
+
+        // Display shortest latency from the source
+        cout << "\nShortest Network Paths from Device "
+             << start << " (" << deviceNames[start]
+             << "):\n";
+
+        cout << "================================\n";
+
+        for (int vertex : vertices) {
+            cout << start << " -> " << vertex
+                 << " (" << deviceNames[vertex] << ") : ";
+
+            if (distance[vertex] == INF) {
+                cout << "Unreachable\n";
+            } else {
+                cout << distance[vertex] << " ms\n";
+            }
+        }
+    }
 };
 
 int main() {
-    // Step 2 graph: 2 removed, 6 added
+    // Step 2 graph: 2 original vertices removed,
+    // and 6 new vertices added
     vector<int> vertices = {
         0, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12
     };
 
-    // Same network connections and weights as Step 2
+    // Same 16 network connections as Steps 2 and 3
     vector<Edge> edges = {
         {0,1,9},
         {0,2,11},
@@ -170,7 +230,7 @@ int main() {
         {7,12,13}
     };
 
-    // Device names correspond to vertex IDs
+    // Device names indexed by vertex ID
     vector<string> deviceNames(SIZE);
 
     deviceNames[0] = "Main Router";
@@ -185,17 +245,16 @@ int main() {
     deviceNames[11] = "Storage Server";
     deviceNames[12] = "Backup Server";
 
-    // Create the data center network
+    // Create network graph
     Graph network(edges, vertices, deviceNames);
 
-    // Display network topology
+    // Existing Step 3 functionality
     network.printGraph();
-
-    // Perform network inspection using DFS
     network.DFS(0);
-
-    // Perform network discovery using BFS
     network.BFS(0);
+
+    // New Step 4 functionality
+    network.shortestPaths(0);
 
     return 0;
 }
