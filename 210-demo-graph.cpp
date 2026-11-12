@@ -2,7 +2,7 @@
 /*
     COMSC-210 Data Structures
     Lab 34: Network Graph I
-    Step 5: Minimum Spanning Tree
+    Step 6: Interactive Data Center Network Menu
 */
 
 #include <iostream>
@@ -49,7 +49,7 @@ public:
         deviceNames = names;
         connections = edges;
 
-        // Create undirected network connections
+        // Add edges in both directions
         for (const Edge &edge : edges) {
             adjList[edge.src].push_back(
                 make_pair(edge.dest, edge.weight));
@@ -61,7 +61,7 @@ public:
 
     // Display the data center network
     void printGraph() {
-        cout << "Data Center Network Topology:\n";
+        cout << "\nData Center Network Topology:\n";
         cout << "================================\n";
 
         for (int vertex : vertices) {
@@ -192,7 +192,6 @@ public:
         cout << "\nShortest Network Paths from Device "
              << start << " (" << deviceNames[start]
              << "):\n";
-
         cout << "================================\n";
 
         for (int vertex : vertices) {
@@ -207,11 +206,11 @@ public:
         }
     }
 
-    // Kruskal's Minimum Spanning Tree algorithm
+    // Kruskal's minimum spanning tree algorithm
     void minimumSpanningTree() {
-        // Sort connections by increasing weight
         vector<Edge> sortedEdges = connections;
 
+        // Sort all edges by increasing weight
         sort(sortedEdges.begin(), sortedEdges.end(),
              [](const Edge &a, const Edge &b) {
                  if (a.weight != b.weight) {
@@ -223,7 +222,6 @@ public:
                  return a.dest < b.dest;
              });
 
-        // Initially, each active vertex is its own group
         vector<int> parent(SIZE);
 
         for (int vertex : vertices) {
@@ -236,13 +234,12 @@ public:
         cout << "\nData Center Minimum Spanning Tree:\n";
         cout << "================================\n";
 
-        // Select edges without creating cycles
         for (const Edge &edge : sortedEdges) {
             int rootSrc = findRoot(edge.src, parent);
             int rootDest = findRoot(edge.dest, parent);
 
+            // Only accept an edge if it doesn't create a cycle
             if (rootSrc != rootDest) {
-                // Connect the two groups
                 parent[rootSrc] = rootDest;
 
                 cout << "Device " << edge.src
@@ -255,7 +252,6 @@ public:
                 totalWeight += edge.weight;
                 edgeCount++;
 
-                // A spanning tree needs V - 1 edges
                 if (edgeCount ==
                     static_cast<int>(vertices.size()) - 1) {
                     break;
@@ -278,14 +274,25 @@ public:
     }
 };
 
+// Display the interactive menu
+void displayMenu() {
+    cout << "\nData Center Network Menu:\n";
+    cout << "[1] Display network topology\n";
+    cout << "[2] Discover devices (BFS)\n";
+    cout << "[3] Inspect network (DFS)\n";
+    cout << "[4] Calculate shortest paths\n";
+    cout << "[5] Find Minimum Spanning Tree\n";
+    cout << "[0] Exit\n";
+    cout << "Enter your choice: ";
+}
+
 int main() {
-    // Step 2: Two original vertices removed,
-    // six new vertices added
+    // Eleven active vertices from Step 2
     vector<int> vertices = {
         0, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12
     };
 
-    // Same 16 connections from previous steps
+    // Same 16 weighted network connections
     vector<Edge> edges = {
         {0,1,9},
         {0,2,11},
@@ -305,6 +312,7 @@ int main() {
         {7,12,13}
     };
 
+    // Device names indexed by vertex ID
     vector<string> deviceNames(SIZE);
 
     deviceNames[0] = "Main Router";
@@ -321,14 +329,62 @@ int main() {
 
     Graph network(edges, vertices, deviceNames);
 
-    // Previous functionality
-    network.printGraph();
-    network.DFS(0);
-    network.BFS(0);
-    network.shortestPaths(0);
+    int choice;
 
-    // New Step 5 functionality
-    network.minimumSpanningTree();
+    // Keep showing the menu until the user exits
+    while (true) {
+        displayMenu();
+
+        if (!(cin >> choice)) {
+            if (cin.eof()) {
+                break;
+            }
+
+            // Handle non-numeric input
+            cin.clear();
+            cin.ignore(
+                numeric_limits<streamsize>::max(), '\n');
+
+            cout << "Invalid input. Enter a number "
+                 << "from 0 to 5.\n";
+            continue;
+        }
+
+        // Discard remaining input on this line
+        cin.ignore(
+            numeric_limits<streamsize>::max(), '\n');
+
+        switch (choice) {
+            case 1:
+                network.printGraph();
+                break;
+
+            case 2:
+                network.BFS(0);
+                break;
+
+            case 3:
+                network.DFS(0);
+                break;
+
+            case 4:
+                network.shortestPaths(0);
+                break;
+
+            case 5:
+                network.minimumSpanningTree();
+                break;
+
+            case 0:
+                cout << "\nExiting Data Center "
+                     << "Network Monitoring System.\n";
+                return 0;
+
+            default:
+                cout << "Invalid choice. Please enter "
+                     << "a number from 0 to 5.\n";
+        }
+    }
 
     return 0;
 }
